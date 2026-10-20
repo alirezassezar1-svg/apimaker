@@ -1,0 +1,2866 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<title>Worker Forge — Cloudflare Workers API Builder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0b'/%3E%3Cpath d='M8 10l8 6-8 6M18 22h6' stroke='%23f59e0b' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0a0b;--surface:#131316;--surface-2:#1a1a1f;--surface-3:#232329;
+  --border:#232328;--border-2:#2e2e35;
+  --text:#f4f4f5;--text-2:#a1a1aa;--text-3:#71717a;
+  --accent:#f59e0b;--accent-h:#d97706;--accent-soft:rgba(245,158,11,.1);--accent-border:rgba(245,158,11,.28);
+  --green:#10b981;--green-soft:rgba(16,185,129,.1);
+  --red:#ef4444;--red-soft:rgba(239,68,68,.1);
+  --blue:#3b82f6;--blue-soft:rgba(59,130,246,.1);
+  --purple:#8b5cf6;--purple-soft:rgba(139,92,246,.1);
+  --r-sm:8px;--r:10px;--r-md:12px;--r-lg:16px;
+  --sh-1:0 1px 2px rgba(0,0,0,.3);
+  --sh-2:0 4px 12px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.3);
+  --sh-3:0 12px 32px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.3);
+  --sidebar-w:240px;--header-h:56px;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --ease:cubic-bezier(.4,0,.2,1);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+[data-theme="light"]{
+  --bg:#fafafa;--surface:#fff;--surface-2:#f4f4f5;--surface-3:#e8e8ec;
+  --border:#e4e4e7;--border-2:#d4d4d8;
+  --text:#09090b;--text-2:#52525b;--text-3:#a1a1aa;
+  --accent:#d97706;--accent-h:#b45309;--accent-soft:rgba(217,119,6,.08);--accent-border:rgba(217,119,6,.25);
+  --sh-1:0 1px 2px rgba(0,0,0,.04);
+  --sh-2:0 4px 12px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
+  --sh-3:0 12px 32px rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.05);
+}
+[data-theme="light"]{color-scheme:light}
+[data-theme="dark"]{color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+html{background:var(--bg)}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  letter-spacing:-.006em;overflow-x:hidden;
+  transition:background .2s var(--ease),color .2s var(--ease);
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:var(--accent);text-decoration:none}
+img{display:block;max-width:100%}
+::selection{background:var(--accent-soft)}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:99px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
+  background:var(--bg);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:14px 10px calc(14px + var(--sab)) 10px;z-index:40;
+  transition:transform .3s var(--ease);
+}
+.sb-head{display:flex;align-items:center;gap:9px;padding:6px 8px 18px}
+.sb-logo{width:28px;height:28px;border-radius:8px;
+  background:linear-gradient(135deg,#f59e0b,#ef4444);
+  display:grid;place-items:center;flex:0 0 auto;
+  box-shadow:0 4px 16px -4px var(--accent);}
+.sb-logo svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sb-name{font-size:14px;font-weight:600;letter-spacing:-.015em}
+.sb-ver{margin-left:auto;font-size:10px;color:var(--text-3);font-weight:500;padding:2px 6px;border-radius:4px;background:var(--surface-2)}
+.sb-nav{flex:1;overflow-y:auto;padding:4px 0}
+.sb-label{padding:10px 10px 6px;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.sb-item{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:9px 10px;border-radius:8px;color:var(--text-2);
+  font-size:13.5px;font-weight:450;text-align:left;
+  transition:background .12s var(--ease),color .12s var(--ease);
+  position:relative;margin-bottom:1px;
+}
+.sb-item:hover{background:var(--surface-2);color:var(--text)}
+.sb-item.active{background:var(--surface-2);color:var(--text);font-weight:500}
+.sb-item.active::before{content:"";position:absolute;top:50%;left:-10px;transform:translateY(-50%);width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--accent)}
+.sb-item svg{width:16px;height:16px;stroke-width:1.75;flex:0 0 auto;opacity:.75}
+.sb-item.active svg{opacity:1;color:var(--accent)}
+.sb-foot{padding-top:12px;border-top:1px solid var(--border);margin-top:8px}
+.sb-stat{padding:8px 10px;border-radius:8px;background:var(--surface);
+  display:flex;align-items:center;gap:10px;font-size:12px}
+.sb-stat svg{width:14px;height:14px;stroke-width:1.75;color:var(--accent)}
+.sb-stat .v{font-weight:600;font-variant-numeric:tabular-nums}
+.sb-stat .l{color:var(--text-3);font-size:11.5px}
+.main{flex:1;margin-left:var(--sidebar-w);min-width:0;display:flex;flex-direction:column}
+.topbar{
+  position:sticky;top:0;z-index:30;height:var(--header-h);
+  display:flex;align-items:center;gap:12px;
+  padding:0 20px;padding-top:var(--sat);
+  background:var(--bg);border-bottom:1px solid var(--border);
+}
+.tb-title{font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0;display:flex;align-items:center;gap:10px}
+.tb-title .meta{font-size:12px;color:var(--text-3);font-weight:400;padding-left:10px;border-left:1px solid var(--border)}
+.tb-spacer{flex:1}
+.tb-btn{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--text-2);transition:all .12s var(--ease)}
+.tb-btn:hover{background:var(--surface-2);color:var(--text)}
+.tb-btn:active{transform:scale(.94)}
+.tb-btn svg{width:16px;height:16px;stroke-width:1.75;fill:none;stroke:currentColor}
+.content{flex:1;padding:20px 20px calc(60px + var(--sab)) 20px;max-width:1400px;width:100%;margin:0 auto}
+.mobnav{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;
+  background:rgba(10,10,11,.94);
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border-top:1px solid var(--border);
+  padding:6px 4px calc(var(--sab) + 6px) 4px;
+}
+[data-theme="light"] .mobnav{background:rgba(250,250,250,.94)}
+.mobnav button{
+  flex:1;min-height:52px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  color:var(--text-3);border-radius:8px;font-size:10px;font-weight:600;
+  letter-spacing:.02em;text-transform:uppercase;
+  transition:color .15s var(--ease),background .15s var(--ease);
+}
+.mobnav button svg{width:20px;height:20px;stroke-width:1.75;fill:none;stroke:currentColor}
+.mobnav button[aria-current="page"]{color:var(--text);background:var(--surface-2)}
+.mobnav button[aria-current="page"] svg{color:var(--accent)}
+@media (max-width:1000px){
+  .sidebar{transform:translateX(-100%);box-shadow:var(--sh-3)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .mobnav{display:flex}
+  .content{padding:16px 16px calc(84px + var(--sab)) 16px}
+  .tb-title .meta{display:none}
+}
+.sb-backdrop{position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s var(--ease)}
+.sb-backdrop.on{opacity:1;pointer-events:auto}
+@media (min-width:1001px){.sb-backdrop{display:none}}
+
+/* COMPONENTS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:36px;padding:0 14px;border-radius:8px;
+  font-size:13px;font-weight:500;border:1px solid transparent;
+  background:var(--surface-2);color:var(--text);white-space:nowrap;
+  transition:all .12s var(--ease);cursor:pointer;
+}
+.btn svg{width:15px;height:15px;stroke-width:2;fill:none;stroke:currentColor}
+.btn:hover{background:var(--surface-3)}
+.btn:active{transform:translateY(.5px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px -6px var(--accent)}
+.btn.primary:hover{background:var(--accent-h)}
+.btn.ghost{background:transparent;color:var(--text-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn.danger{color:var(--red)}
+.btn.danger:hover{background:var(--red-soft)}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px;border-radius:7px}
+.btn.sm svg{width:13px;height:13px}
+.btn.block{width:100%}
+.btn.icon{padding:0;width:36px;min-width:36px}
+.btn.icon svg{width:16px;height:16px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:13.5px;font-weight:600;margin:0;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.card-title svg{width:16px;height:16px;stroke-width:1.75;fill:none;stroke:var(--accent)}
+.card-sub{font-size:12px;color:var(--text-3);margin:2px 0 0}
+.card-body{padding:18px}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{font-size:12px;font-weight:500;color:var(--text-2);
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.field .hint{font-size:11px;color:var(--text-3);font-weight:400}
+.input,.select,.textarea{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:9px 11px;font-size:13.5px;color:var(--text);
+  transition:all .12s var(--ease);
+}
+.input,.select{height:38px}
+.textarea{min-height:80px;padding:10px 11px;line-height:1.5;resize:vertical;
+  font-family:var(--mono);font-size:12px}
+.input::placeholder,.textarea::placeholder{color:var(--text-3)}
+.input:focus,.select:focus,.textarea:focus{
+  border-color:var(--accent-border);
+  box-shadow:0 0 0 3px var(--accent-soft);outline:none;
+}
+.select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:14px;
+  padding-right:34px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 11px;border-radius:99px;
+  font-size:12px;font-weight:500;
+  background:var(--surface-2);border:1px solid transparent;color:var(--text-2);
+  cursor:pointer;transition:all .12s var(--ease);white-space:nowrap;
+}
+.chip:hover{background:var(--surface-3);color:var(--text)}
+.chip.active{background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent)}
+[data-theme="dark"] .chip.active{color:#fbbf24}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:5px;
+  font-size:11px;font-weight:500;
+  background:var(--surface-2);color:var(--text-2);
+}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.badge.green{background:var(--green-soft);color:var(--green)}
+.badge.amber{background:var(--accent-soft);color:var(--accent)}
+.badge.red{background:var(--red-soft);color:var(--red)}
+.badge.blue{background:var(--blue-soft);color:var(--blue)}
+.badge.purple{background:var(--purple-soft);color:var(--purple)}
+.badge.no-dot::before{display:none}
+
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 24px;text-align:center;color:var(--text-3)}
+.empty svg{width:32px;height:32px;stroke-width:1.4;fill:none;stroke:currentColor;opacity:.5;margin-bottom:14px}
+.empty h3{font-size:15px;font-weight:500;color:var(--text);margin:0 0 6px}
+.empty p{font-size:13px;margin:0 0 18px;max-width:380px;line-height:1.55}
+
+.spinner{display:inline-block;width:16px;height:16px;
+  border:2px solid var(--surface-3);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite}
+.spinner.lg{width:32px;height:32px;border-width:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TABS */
+.tabs{display:flex;gap:2px;padding:3px;background:var(--surface-2);
+  border-radius:10px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{
+  flex:1;min-width:80px;padding:8px 14px;border-radius:7px;
+  font-size:12.5px;font-weight:500;color:var(--text-3);
+  transition:all .15s var(--ease);white-space:nowrap;
+}
+.tabs button:hover{color:var(--text)}
+.tabs button.active{background:var(--surface);color:var(--text);box-shadow:var(--sh-1)}
+.tabs button.active svg{color:var(--accent)}
+.tabs button svg{width:14px;height:14px;stroke-width:1.75;fill:none;stroke:currentColor;
+  vertical-align:-2px;margin-right:6px}
+
+/* CODE BLOCK */
+.code-block{
+  background:#0d0d10;border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;
+}
+[data-theme="light"] .code-block{background:#fafafa}
+.code-head{
+  padding:8px 12px;background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font-size:11.5px;color:var(--text-3);
+  font-family:var(--mono);
+}
+.code-head .lang{color:var(--accent);font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+pre.code{
+  margin:0;padding:14px 16px;overflow-x:auto;
+  font-family:var(--mono);font-size:12px;line-height:1.65;
+  color:#e4e4e7;max-height:520px;
+}
+[data-theme="light"] pre.code{color:#18181b}
+pre.code .c-com{color:#71717a;font-style:italic}
+pre.code .c-str{color:#86efac}
+pre.code .c-kw{color:#c4b5fd;font-weight:500}
+pre.code .c-num{color:#fbbf24}
+[data-theme="light"] pre.code .c-str{color:#16a34a}
+[data-theme="light"] pre.code .c-kw{color:#7c3aed}
+[data-theme="light"] pre.code .c-num{color:#d97706}
+
+/* GRID */
+.grid-2{display:grid;gap:18px;grid-template-columns:minmax(280px,1fr) minmax(0,1.6fr)}
+@media (max-width:900px){.grid-2{grid-template-columns:1fr}}
+.grid-3{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+
+/* RESULT VIEWER */
+.result{
+  border-radius:var(--r);border:1px solid var(--border);
+  background:var(--surface);overflow:hidden;
+}
+.result-head{
+  padding:10px 14px;background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:12px;
+}
+.result-body{padding:16px;max-height:440px;overflow:auto}
+.result-body pre{
+  margin:0;font-family:var(--mono);font-size:12px;line-height:1.6;
+  white-space:pre-wrap;word-break:break-word;color:var(--text-2)
+}
+.result-body img{
+  max-width:100%;max-height:360px;border-radius:8px;
+  box-shadow:var(--sh-2);display:block;margin:0 auto
+}
+
+/* STEP LIST */
+.steps{display:flex;flex-direction:column;gap:0}
+.step{
+  display:flex;gap:14px;padding:16px 0;
+  border-bottom:1px solid var(--border);position:relative;
+}
+.step:last-child{border-bottom:none}
+.step-num{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:var(--accent-soft);border:1px solid var(--accent-border);
+  color:var(--accent);display:grid;place-items:center;
+  font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+.step-body{flex:1;min-width:0}
+.step-title{font-size:13.5px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.step-desc{font-size:12.5px;color:var(--text-2);margin:0 0 10px;line-height:1.55}
+.step-action{margin-top:10px}
+
+/* SIDEBAR TEMPLATE PICKER */
+.tpl-item{
+  display:flex;flex-direction:column;gap:4px;width:100%;
+  padding:11px 12px;border-radius:9px;text-align:left;
+  background:transparent;border:1px solid transparent;
+  transition:all .12s var(--ease);
+}
+.tpl-item:hover{background:var(--surface-2)}
+.tpl-item.active{background:var(--surface-2);border-color:var(--border-2)}
+.tpl-item .tt{font-size:12.5px;font-weight:550;display:flex;align-items:center;gap:6px;color:var(--text)}
+.tpl-item .tt svg{width:14px;height:14px;stroke-width:2;fill:none;stroke:var(--accent);flex-shrink:0}
+.tpl-item .td{font-size:11px;color:var(--text-3);line-height:1.4;margin-left:20px}
+
+/* TOAST */
+.toasts{
+  position:fixed;bottom:20px;right:20px;z-index:200;
+  display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;max-width:400px;
+}
+@media (max-width:900px){.toasts{left:14px;right:14px;bottom:calc(84px + var(--sab))}}
+.toast{
+  display:flex;align-items:center;gap:10px;padding:11px 14px;
+  background:var(--surface-2);border:1px solid var(--border-2);
+  border-radius:var(--r-sm);box-shadow:var(--sh-3);
+  font-size:13px;pointer-events:auto;
+  opacity:0;transform:translateY(10px) scale(.97);
+  transition:all .22s cubic-bezier(.34,1.2,.5,1);
+}
+.toast.in{opacity:1;transform:none}
+.toast svg{width:15px;height:15px;flex-shrink:0;stroke-width:2;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.toast.ok svg{stroke:var(--green)}
+.toast.err svg{stroke:var(--red)}
+.toast.warn svg{stroke:var(--accent)}
+.toast.info svg{stroke:var(--blue)}
+.toast .msg{flex:1;min-width:0}
+
+/* MODAL */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:80;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .2s var(--ease);
+  display:grid;place-items:center;padding:24px;
+}
+.modal-backdrop.on{opacity:1;pointer-events:auto}
+.modal{
+  width:100%;max-width:600px;max-height:88vh;
+  background:var(--surface);border:1px solid var(--border-2);
+  border-radius:var(--r-lg);box-shadow:var(--sh-3);
+  display:flex;flex-direction:column;overflow:hidden;
+  transform:scale(.96) translateY(8px);
+  transition:transform .22s cubic-bezier(.34,1.2,.5,1);
+}
+.modal-backdrop.on .modal{transform:scale(1) translateY(0)}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.modal-title{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em}
+.modal-sub{font-size:12px;color:var(--text-3);margin:3px 0 0}
+.modal-body{padding:20px;overflow-y:auto}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+.hidden{display:none!important}
+.mono{font-family:var(--mono)}
+.copy-row{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:8px;font-family:var(--mono);font-size:12px;
+  word-break:break-all;color:var(--text-2);
+}
+.copy-row .val{flex:1;min-width:0}
+.copy-row button{
+  width:28px;height:28px;border-radius:6px;flex-shrink:0;
+  display:grid;place-items:center;color:var(--text-3);
+  transition:all .12s var(--ease);
+}
+.copy-row button:hover{background:var(--surface-3);color:var(--text)}
+.copy-row button svg{width:14px;height:14px;stroke-width:2;fill:none;stroke:currentColor}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo"><svg viewBox="0 0 24 24"><path d="M5 7l7 5-7 5M14 17h5"/></svg></div>
+    <div class="sb-name">Worker Forge</div>
+    <span class="sb-ver">v1.0</span>
+  </div>
+  <nav class="sb-nav" id="sbNav"></nav>
+  <div class="sb-foot">
+    <div class="sb-stat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <div>
+        <div class="v" id="sbCache">0</div>
+        <div class="l">cached entries</div>
+      </div>
+    </div>
+  </div>
+</aside>
+<div class="sb-backdrop" id="sbBackdrop"></div>
+
+<main class="main">
+  <header class="topbar">
+    <button class="tb-btn" id="btnMenu" aria-label="Menu" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <h1 class="tb-title" id="pageTitle">Design</h1>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn" id="btnTheme" aria-label="Toggle theme">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="tb-btn" id="btnReset" aria-label="Reset" title="Reset config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </header>
+  <div class="content" id="view"></div>
+</main>
+
+<nav class="mobnav" id="mobNav"></nav>
+<div class="toasts" id="toasts"></div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   WORKER FORGE
+   Design, test, deploy Cloudflare Workers — all in the browser.
+   ============================================================ */
+
+/* ---------- CONFIG ---------- */
+const CONFIG = {
+  app: { name: 'Worker Forge', version: '1.0.0' },
+  deploy: {
+    deployButtonBase: 'https://deploy.workers.cloudflare.com/?url=',
+    playgroundBase: 'https://workers.cloudflare.com/playground',
+    dashboard: 'https://dash.cloudflare.com/?to=/:account/workers-and-pages'
+  },
+  defaults: {
+    corsOrigin: '*',
+    cacheTtl: 86400
+  }
+};
+
+/* ---------- UTILS ---------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+function debounce(fn, ms = 180) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(() => true).catch(() => fallbackCopy(text));
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
+}
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function fmtBytes(b) {
+  if (!b && b !== 0) return '—';
+  const u = ['B','KB','MB']; let i = 0; let n = b;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i ? n.toFixed(1) : Math.round(n)) + ' ' + u[i];
+}
+
+/* Simple JS syntax highlighter */
+function highlightJS(code) {
+  const tokens = [];
+  const save = (html) => { const i = tokens.length; tokens.push(html); return '\u0000' + i + '\u0000'; };
+  let out = esc(code);
+  out = out.replace(/(\/\/[^\n]*)/g, m => save('<span class="c-com">' + m + '</span>'));
+  out = out.replace(/(\/\*[\s\S]*?\*\/)/g, m => save('<span class="c-com">' + m + '</span>'));
+  out = out.replace(/('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)/g, m => save('<span class="c-str">' + m + '</span>'));
+  out = out.replace(/\b(const|let|var|function|return|if|else|for|while|async|await|export|default|new|class|try|catch|throw|typeof|instanceof|of|in|this|null|true|false|undefined)\b/g, '<span class="c-kw">$1</span>');
+  out = out.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="c-num">$1</span>');
+  out = out.replace(/\u0000(\d+)\u0000/g, (_, i) => tokens[+i]);
+  return out;
+}
+
+/* ---------- TOAST ---------- */
+const Toast = {
+  root: null,
+  icons: {
+    ok: '<path d="M20 6L9 17l-5-5"/>',
+    err: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>',
+    warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 16h.01"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'
+  },
+  init() { this.root = $('#toasts'); },
+  show(msg, type = 'info', ms = 3200) {
+    const n = el('<div class="toast ' + type + '"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (this.icons[type] || this.icons.info) + '</svg><span class="msg">' + esc(msg) + '</span></div>');
+    this.root.appendChild(n);
+    requestAnimationFrame(() => n.classList.add('in'));
+    setTimeout(() => { n.classList.remove('in'); setTimeout(() => n.remove(), 240); }, ms);
+  },
+  ok(m, ms) { return this.show(m, 'ok', ms); },
+  err(m, ms) { return this.show(m, 'err', ms || 5000); },
+  warn(m, ms) { return this.show(m, 'warn', ms); },
+  info(m, ms) { return this.show(m, 'info', ms); }
+};
+
+/* ---------- MODAL ---------- */
+const Modal = {
+  root: null, backdrop: null,
+  open(html) { this.root.innerHTML = html; this.backdrop.classList.add('on'); document.body.style.overflow = 'hidden'; },
+  close() { this.backdrop.classList.remove('on'); document.body.style.overflow = ''; setTimeout(() => { if (!this.backdrop.classList.contains('on')) this.root.innerHTML = ''; }, 220); }
+};
+
+/* ============================================================
+   TEMPLATES — the code generators
+   Each template: { id, name, description, icon, fields[], generate(cfg) }
+   ============================================================ */
+const TEMPLATES = {
+
+  /* ---- 1. Image API ---- */
+  image: {
+    id: 'image',
+    name: 'Image Generation API',
+    description: 'Cached proxy for text-to-image. Pollinations or Workers AI.',
+    icon: 'image',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'image-api', hint: 'Lowercase, dashes allowed' },
+      { key: 'upstream', label: 'Upstream', type: 'select', default: 'pollinations',
+        options: [
+          { value: 'pollinations', label: 'Pollinations.ai (free, no key)' },
+          { value: 'workers-ai', label: 'Cloudflare Workers AI (FLUX)' }
+        ]
+      },
+      { key: 'defaultModel', label: 'Default model', type: 'text', default: 'flux' },
+      { key: 'cacheTtl', label: 'Cache TTL (seconds)', type: 'number', default: 86400, hint: '86400 = 1 day' },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*', hint: '* or your domain' }
+    ],
+    generate(cfg) {
+      const aiBranch = cfg.upstream === 'workers-ai' ? `
+  // ---- Workers AI path ----
+  // Bind AI in wrangler.jsonc: { "ai": { "binding": "AI" } }
+  try {
+    const result = await env.AI.run('@cf/black-forest-labs/flux-1-schnell', {
+      prompt: prompt,
+      steps: 4,
+      seed: s,
+    });
+    let imageBytes;
+    if (result instanceof Response) {
+      imageBytes = await result.arrayBuffer();
+    } else if (result && result.image) {
+      imageBytes = typeof result.image === 'string'
+        ? base64ToArrayBuffer(result.image)
+        : result.image;
+    } else {
+      return json({ error: 'Unexpected Workers AI response shape' }, 502);
+    }
+    ctx.waitUntil(env.CACHE_KV.put(cacheKey, imageBytes, { expirationTtl: CONFIG.cacheTtl }).catch(() => {}));
+    return new Response(imageBytes, {
+      headers: {
+        'Content-Type': 'image/png',
+        'X-Cache': 'MISS',
+        'X-Engine': 'workers-ai',
+        'Cache-Control': 'public, max-age=' + CONFIG.cacheTtl,
+        ...CORS,
+      },
+    });
+  } catch (e) {
+    return json({ error: 'Workers AI call failed', detail: e.message }, 502);
+  }` : `
+  // ---- Pollinations path ----
+  let upstreamResponse;
+  try {
+    upstreamResponse = await fetch(buildPollinationsUrl(prompt, m, w, h, s));
+  } catch (e) {
+    return json({ error: 'Upstream fetch failed', detail: e.message }, 502);
+  }
+  if (!upstreamResponse.ok) {
+    return json({ error: 'Upstream error', status: upstreamResponse.status }, 502);
+  }
+  const buffer = await upstreamResponse.arrayBuffer();
+  ctx.waitUntil(
+    env.CACHE_KV.put(cacheKey, buffer, { expirationTtl: CONFIG.cacheTtl })
+      .catch((e) => console.warn('KV write failed:', e.message))
+  );
+  return new Response(buffer, {
+    headers: {
+      'Content-Type': 'image/png',
+      'X-Cache': 'MISS',
+      'X-Seed': String(s),
+      'X-Model': m,
+      'Cache-Control': 'public, max-age=' + CONFIG.cacheTtl,
+      ...CORS,
+    },
+  });`;
+
+      return `/**
+ * ${cfg.workerName} — Image Generation API
+ * Generated by Worker Forge.
+ *
+ * Endpoints:
+ *   GET  /image?prompt=...&model=flux&w=1024&h=1024&seed=42
+ *   POST /image  { "prompt": "...", "model": "flux", "width": 1024, "height": 1024, "seed": 42 }
+ *   GET  /health
+ *
+ * Cache strategy: Workers KV, TTL ${cfg.cacheTtl}s.
+ * Upstream: ${cfg.upstream}.
+ */
+
+const CONFIG = {
+  upstream: '${cfg.upstream}',
+  defaultModel: '${cfg.defaultModel}',
+  cacheTtl: ${cfg.cacheTtl},
+  corsOrigin: '${cfg.corsOrigin}',
+  maxPromptLength: 1000,
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin': CONFIG.corsOrigin,
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS, ...extra },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, worker: '${cfg.workerName}', upstream: CONFIG.upstream, ts: Date.now() });
+    }
+
+    if (url.pathname === '/' || url.pathname === '/image') {
+      return handleImage(request, env, ctx, url);
+    }
+
+    return json({ error: 'Not found', path: url.pathname }, 404);
+  },
+};
+
+async function handleImage(request, env, ctx, url) {
+  let prompt, model, width, height, seed;
+
+  if (request.method === 'POST') {
+    let body;
+    try { body = await request.json(); }
+    catch { return json({ error: 'Invalid JSON body' }, 400); }
+    ({ prompt, model, width, height, seed } = body);
+  } else {
+    prompt = url.searchParams.get('prompt');
+    model  = url.searchParams.get('model');
+    width  = url.searchParams.get('w');
+    height = url.searchParams.get('h');
+    seed   = url.searchParams.get('seed');
+  }
+
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    return json({ error: 'Missing required parameter: prompt' }, 400);
+  }
+  if (prompt.length > CONFIG.maxPromptLength) {
+    return json({ error: 'Prompt too long (max ' + CONFIG.maxPromptLength + ' chars)' }, 400);
+  }
+
+  const m = (model || CONFIG.defaultModel).toString().slice(0, 40);
+  const w = clampInt(width, 256, 1920, 1024);
+  const h = clampInt(height, 256, 1920, 1024);
+  const s = seed != null && seed !== '' ? (parseInt(seed, 10) >>> 0) : Math.floor(Math.random() * 1e9);
+
+  const cacheKey = 'img:' + hashStr([prompt, m, w, h, s].join('|'));
+
+  // 1. KV cache lookup
+  try {
+    const cached = await env.CACHE_KV.get(cacheKey, { type: 'arrayBuffer' });
+    if (cached) {
+      return new Response(cached, {
+        headers: {
+          'Content-Type': 'image/png',
+          'X-Cache': 'HIT-KV',
+          'X-Cache-Key': cacheKey,
+          'Cache-Control': 'public, max-age=' + CONFIG.cacheTtl,
+          ...CORS,
+        },
+      });
+    }
+  } catch (e) {
+    console.warn('KV read failed:', e.message);
+  }
+${aiBranch}
+}
+
+function buildPollinationsUrl(prompt, model, width, height, seed) {
+  const qs = new URLSearchParams({
+    width: String(width),
+    height: String(height),
+    model: model,
+    seed: String(seed),
+    nologo: 'true',
+  });
+  return 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?' + qs.toString();
+}
+
+function clampInt(v, min, max, dflt) {
+  const n = parseInt(v, 10);
+  if (isNaN(n)) return dflt;
+  return Math.max(min, Math.min(max, n));
+}
+
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
+function base64ToArrayBuffer(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}`;
+    }
+  },
+
+  /* ---- 2. Chat / LLM API ---- */
+  chat: {
+    id: 'chat',
+    name: 'Chat / LLM API',
+    description: 'OpenAI-compatible chat endpoint on Workers AI.',
+    icon: 'chat',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'chat-api' },
+      { key: 'model', label: 'Model', type: 'select', default: '@cf/meta/llama-3.1-8b-instruct',
+        options: [
+          { value: '@cf/meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B' },
+          { value: '@cf/meta/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
+          { value: '@cf/qwen/qwen1.5-14b-chat-awq', label: 'Qwen 1.5 14B' },
+          { value: '@cf/mistral/mistral-7b-instruct-v0.1', label: 'Mistral 7B' }
+        ]
+      },
+      { key: 'maxTokens', label: 'Max tokens', type: 'number', default: 512 },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*' }
+    ],
+    generate(cfg) {
+      return `/**
+ * ${cfg.workerName} — Chat / LLM API
+ * Generated by Worker Forge.
+ *
+ * Endpoints:
+ *   POST /chat  { "messages": [{ "role": "user", "content": "hi" }], "max_tokens": 512 }
+ *   GET  /health
+ *
+ * Binding required in wrangler.jsonc: { "ai": { "binding": "AI" } }
+ */
+
+const CONFIG = {
+  model: '${cfg.model}',
+  maxTokens: ${cfg.maxTokens},
+  corsOrigin: '${cfg.corsOrigin}',
+  maxMessages: 50,
+  maxChars: 20000,
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin': CONFIG.corsOrigin,
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, model: CONFIG.model, ts: Date.now() });
+    }
+
+    if (url.pathname === '/chat' && request.method === 'POST') {
+      return handleChat(request, env);
+    }
+
+    return json({ error: 'Not found' }, 404);
+  },
+};
+
+async function handleChat(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const messages = Array.isArray(body.messages) ? body.messages : null;
+  if (!messages || !messages.length) {
+    return json({ error: 'Missing required field: messages (array)' }, 400);
+  }
+  if (messages.length > CONFIG.maxMessages) {
+    return json({ error: 'Too many messages (max ' + CONFIG.maxMessages + ')' }, 400);
+  }
+
+  // Validate and sanitize each message
+  const cleaned = [];
+  let totalChars = 0;
+  for (const m of messages) {
+    if (!m || typeof m !== 'object') return json({ error: 'Each message must be an object' }, 400);
+    const role = String(m.role || '');
+    if (!['system', 'user', 'assistant'].includes(role)) {
+      return json({ error: 'Invalid role: ' + role }, 400);
+    }
+    const content = String(m.content || '');
+    totalChars += content.length;
+    cleaned.push({ role, content });
+  }
+  if (totalChars > CONFIG.maxChars) {
+    return json({ error: 'Total content too large (max ' + CONFIG.maxChars + ' chars)' }, 400);
+  }
+
+  const maxTokens = Math.max(1, Math.min(2048, parseInt(body.max_tokens, 10) || CONFIG.maxTokens));
+
+  try {
+    const result = await env.AI.run(CONFIG.model, {
+      messages: cleaned,
+      max_tokens: maxTokens,
+    });
+
+    return json({
+      id: 'chatcmpl-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: CONFIG.model,
+      choices: [{
+        index: 0,
+        message: { role: 'assistant', content: result.response || '' },
+        finish_reason: 'stop',
+      }],
+      usage: result.usage || null,
+    });
+  } catch (e) {
+    return json({ error: 'Workers AI call failed', detail: e.message }, 502);
+  }
+}`;
+    }
+  },
+
+  /* ---- 3. JSON Proxy with cache ---- */
+  proxy: {
+    id: 'proxy',
+    name: 'Cached JSON Proxy',
+    description: 'Forward any allowed URL with automatic KV caching.',
+    icon: 'proxy',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'json-proxy' },
+      { key: 'allowedHosts', label: 'Allowed hosts (comma-separated)', type: 'text', default: 'api.github.com,jsonplaceholder.typicode.com', hint: 'Whitelist to prevent open proxy abuse' },
+      { key: 'cacheTtl', label: 'Cache TTL (seconds)', type: 'number', default: 300 },
+      { key: 'requireAuth', label: 'Require API token', type: 'select', default: 'no',
+        options: [{ value: 'no', label: 'No (public)' }, { value: 'yes', label: 'Yes (Bearer token via secret)' }]
+      },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*' }
+    ],
+    generate(cfg) {
+      const authBlock = cfg.requireAuth === 'yes' ? `
+  // Auth check — set secret via: wrangler secret put PROXY_TOKEN
+  const authHeader = request.headers.get('Authorization') || '';
+  const expected = 'Bearer ' + env.PROXY_TOKEN;
+  if (!env.PROXY_TOKEN || authHeader !== expected) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+` : '';
+
+      return `/**
+ * ${cfg.workerName} — Cached JSON Proxy
+ * Generated by Worker Forge.
+ *
+ * Endpoints:
+ *   GET  /proxy?url=https://api.example.com/data
+ *   GET  /health
+ *
+ * Only hosts in ALLOWED_HOSTS may be forwarded to.
+ * Responses cached in Workers KV for ${cfg.cacheTtl}s.
+ */
+
+const CONFIG = {
+  allowedHosts: [${cfg.allowedHosts.split(',').map(h => `'${h.trim()}'`).join(', ')}],
+  cacheTtl: ${cfg.cacheTtl},
+  corsOrigin: '${cfg.corsOrigin}',
+  maxResponseBytes: 5 * 1024 * 1024,
+  requireAuth: ${cfg.requireAuth === 'yes'},
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin': CONFIG.corsOrigin,
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS, ...extra },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, worker: '${cfg.workerName}', allowed: CONFIG.allowedHosts });
+    }
+
+    if (url.pathname !== '/proxy') {
+      return json({ error: 'Not found. Use /proxy?url=...' }, 404);
+    }
+
+    if (CONFIG.requireAuth) {${authBlock}}
+
+    const target = url.searchParams.get('url');
+    if (!target) return json({ error: 'Missing query parameter: url' }, 400);
+
+    let targetUrl;
+    try { targetUrl = new URL(target); }
+    catch { return json({ error: 'Invalid URL' }, 400); }
+
+    if (!CONFIG.allowedHosts.includes(targetUrl.hostname)) {
+      return json({
+        error: 'Host not allowed',
+        host: targetUrl.hostname,
+        allowed: CONFIG.allowedHosts,
+      }, 403);
+    }
+
+    const cacheKey = 'proxy:' + targetUrl.toString();
+    const ttl = clampInt(url.searchParams.get('ttl'), 0, CONFIG.cacheTtl, CONFIG.cacheTtl);
+
+    // Cache lookup
+    if (ttl > 0) {
+      try {
+        const cached = await env.CACHE_KV.get(cacheKey, { type: 'json' });
+        if (cached && cached.expires > Date.now()) {
+          return json(cached.body, cached.status, { 'X-Cache': 'HIT-KV', 'X-Cache-Age': String(Math.floor((Date.now() - cached.stored) / 1000)) });
+        }
+      } catch (e) { console.warn('KV read failed:', e.message); }
+    }
+
+    // Upstream fetch
+    let upstream;
+    try {
+      upstream = await fetch(targetUrl.toString(), {
+        headers: { 'User-Agent': 'WorkerForge/' + '${cfg.workerName}' },
+        redirect: 'follow',
+      });
+    } catch (e) {
+      return json({ error: 'Upstream fetch failed', detail: e.message }, 502);
+    }
+
+    const buf = await upstream.arrayBuffer();
+    if (buf.byteLength > CONFIG.maxResponseBytes) {
+      return json({ error: 'Upstream response too large', bytes: buf.byteLength }, 413);
+    }
+
+    let body;
+    try { body = JSON.parse(new TextDecoder().decode(buf)); }
+    catch { return json({ error: 'Upstream did not return JSON' }, 502); }
+
+    if (ttl > 0) {
+      ctx.waitUntil(
+        env.CACHE_KV.put(cacheKey, JSON.stringify({ body, status: upstream.status, stored: Date.now(), expires: Date.now() + ttl * 1000 }), { expirationTtl: ttl })
+          .catch((e) => console.warn('KV write failed:', e.message))
+      );
+    }
+
+    return json(body, upstream.status, { 'X-Cache': 'MISS', 'X-Cache-Key': cacheKey });
+  },
+};
+
+function clampInt(v, min, max, dflt) {
+  const n = parseInt(v, 10);
+  if (isNaN(n)) return dflt;
+  return Math.max(min, Math.min(max, n));
+}`;
+    }
+  },
+
+  /* ---- 4. URL Shortener ---- */
+  shortener: {
+    id: 'shortener',
+    name: 'URL Shortener',
+    description: 'KV-backed short links with optional click tracking.',
+    icon: 'link',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'short-links' },
+      { key: 'domain', label: 'Public domain (optional)', type: 'text', default: '', hint: 'Leave blank to use the worker URL' },
+      { key: 'trackClicks', label: 'Track clicks', type: 'select', default: 'no',
+        options: [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes (stored in KV)' }]
+      },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*' }
+    ],
+    generate(cfg) {
+      const trackBlock = cfg.trackClicks === 'yes' ? `
+    if (record && record.tracking !== false) {
+      ctx.waitUntil(
+        env.CACHE_KV.put('clicks:' + code, JSON.stringify({
+          count: (record.clicks || 0) + 1,
+          last: Date.now(),
+          referer: request.headers.get('Referer') || null,
+          ua: request.headers.get('User-Agent') || null,
+        }), { expirationTtl: 60 * 60 * 24 * 365 }).catch(() => {})
+      );
+    }` : '';
+
+      return `/**
+ * ${cfg.workerName} — URL Shortener
+ * Generated by Worker Forge.
+ *
+ * Endpoints:
+ *   POST /shorten    { "url": "https://example.com/long", "slug": "optional" }
+ *      → { "short": "https://yourdomain/abc123", "code": "abc123" }
+ *
+ *   GET  /:code      → 302 redirect to target
+ *   GET  /stats/:code → click stats (if tracking enabled)
+ */
+
+const CONFIG = {
+  publicDomain: '${cfg.domain}',
+  trackClicks: ${cfg.trackClicks === 'yes'},
+  corsOrigin: '${cfg.corsOrigin}',
+  codeLength: 7,
+  maxUrlLength: 2048,
+  defaultTtlDays: 365,
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin': CONFIG.corsOrigin,
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS, ...extra },
+  });
+}
+
+const ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz';
+
+function generateCode(len) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < len; i++) out += ALPHABET[bytes[i] % ALPHABET.length];
+  return out;
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, worker: '${cfg.workerName}' });
+    }
+
+    if (url.pathname === '/shorten' && request.method === 'POST') {
+      return handleShorten(request, env, url);
+    }
+
+    if (url.pathname.startsWith('/stats/')) {
+      const code = url.pathname.slice(7);
+      const stats = await env.CACHE_KV.get('clicks:' + code, { type: 'json' });
+      if (!stats) return json({ error: 'No stats' }, 404);
+      return json({ code, ...stats });
+    }
+
+    // Redirect handler
+    const code = url.pathname.slice(1);
+    if (code && /^[a-zA-Z0-9]{1,20}$/.test(code)) {
+      return handleRedirect(request, env, ctx, code);
+    }
+
+    return json({ error: 'Not found. Use POST /shorten' }, 404);
+  },
+};
+
+async function handleShorten(request, env, url) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const target = String(body.url || '').trim();
+  if (!target) return json({ error: 'Missing field: url' }, 400);
+  if (target.length > CONFIG.maxUrlLength) return json({ error: 'URL too long' }, 400);
+
+  let parsed;
+  try { parsed = new URL(target); }
+  catch { return json({ error: 'Invalid URL' }, 400); }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    return json({ error: 'Only http:// and https:// URLs allowed' }, 400);
+  }
+
+  let code = body.slug ? String(body.slug).toLowerCase().replace(/[^a-z0-9-]/g, '') : '';
+  if (code && code.length > 20) return json({ error: 'Slug too long' }, 400);
+  if (code) {
+    const exists = await env.CACHE_KV.get('link:' + code);
+    if (exists) return json({ error: 'Slug already taken' }, 409);
+  } else {
+    for (let i = 0; i < 5; i++) {
+      code = generateCode(CONFIG.codeLength);
+      if (!(await env.CACHE_KV.get('link:' + code))) break;
+    }
+  }
+
+  const ttlDays = Math.max(1, Math.min(3650, parseInt(body.ttlDays, 10) || CONFIG.defaultTtlDays));
+  await env.CACHE_KV.put('link:' + code, JSON.stringify({
+    url: target,
+    created: Date.now(),
+    clicks: 0,
+    tracking: CONFIG.trackClicks,
+  }), { expirationTtl: ttlDays * 86400 });
+
+  const short = (CONFIG.publicDomain || new URL(request.url).origin).replace(/\\/$/, '') + '/' + code;
+  return json({ short, code, target, expiresIn: ttlDays + 'd' });
+}
+
+async function handleRedirect(request, env, ctx, code) {
+  let record;
+  try { record = await env.CACHE_KV.get('link:' + code, { type: 'json' }); }
+  catch (e) { return new Response('Storage error: ' + e.message, { status: 500 }); }
+
+  if (!record || !record.url) {
+    return new Response('Link not found: ' + code, { status: 404 });
+  }
+${trackBlock}
+  return Response.redirect(record.url, 302);
+}`;
+    }
+  },
+
+  /* ---- 5. Random Image API ---- */
+  random: {
+    id: 'random',
+    name: 'Random Image API',
+    description: 'Random photo endpoint with short cache and simple filters.',
+    icon: 'shuffle',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'random-image' },
+      { key: 'source', label: 'Source', type: 'select', default: 'picsum',
+        options: [
+          { value: 'picsum', label: 'Lorem Picsum' },
+          { value: 'pollinations', label: 'Pollinations (AI-generated)' }
+        ]
+      },
+      { key: 'cacheTtl', label: 'Cache TTL (seconds)', type: 'number', default: 60 },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*' }
+    ],
+    generate(cfg) {
+      const fetchBlock = cfg.source === 'picsum' ? `
+  const w = clampInt(url.searchParams.get('w'), 100, 1920, 800);
+  const h = clampInt(url.searchParams.get('h'), 100, 1920, 600);
+  const seed = url.searchParams.get('seed') || Math.floor(Math.random() * 1e6);
+  const upstream = 'https://picsum.photos/seed/' + seed + '/' + w + '/' + h;` : `
+  const prompt = url.searchParams.get('prompt') || 'random beautiful landscape';
+  const w = clampInt(url.searchParams.get('w'), 256, 1920, 1024);
+  const h = clampInt(url.searchParams.get('h'), 256, 1920, 1024);
+  const seed = url.searchParams.get('seed') || Math.floor(Math.random() * 1e9);
+  const upstream = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) +
+    '?width=' + w + '&height=' + h + '&seed=' + seed + '&nologo=true';`;
+
+      return `/**
+ * ${cfg.workerName} — Random Image API
+ * Generated by Worker Forge.
+ *
+ * Endpoints:
+ *   GET /random?w=800&h=600&seed=42
+ *   GET /health
+ *
+ * Source: ${cfg.source}
+ * Cache TTL: ${cfg.cacheTtl}s
+ */
+
+const CONFIG = {
+  source: '${cfg.source}',
+  cacheTtl: ${cfg.cacheTtl},
+  corsOrigin: '${cfg.corsOrigin}',
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin': CONFIG.corsOrigin,
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, worker: '${cfg.workerName}', source: CONFIG.source });
+    }
+
+    if (url.pathname !== '/' && url.pathname !== '/random') {
+      return json({ error: 'Not found' }, 404);
+    }
+${fetchBlock}
+
+  const cacheKey = 'rand:' + hashStr(upstream);
+
+  try {
+    const cached = await env.CACHE_KV.get(cacheKey, { type: 'arrayBuffer' });
+    if (cached) {
+      return new Response(cached, {
+        headers: { 'Content-Type': 'image/jpeg', 'X-Cache': 'HIT-KV', ...CORS },
+      });
+    }
+  } catch (e) { console.warn('KV read failed:', e.message); }
+
+  let upstreamRes;
+  try {
+    upstreamRes = await fetch(upstream, { redirect: 'follow' });
+  } catch (e) {
+    return json({ error: 'Upstream failed', detail: e.message }, 502);
+  }
+
+  if (!upstreamRes.ok) {
+    return json({ error: 'Upstream status ' + upstreamRes.status }, 502);
+  }
+
+  const buf = await upstreamRes.arrayBuffer();
+  ctx.waitUntil(env.CACHE_KV.put(cacheKey, buf, { expirationTtl: CONFIG.cacheTtl }).catch(() => {}));
+
+  return new Response(buf, {
+    headers: {
+      'Content-Type': upstreamRes.headers.get('content-type') || 'image/jpeg',
+      'X-Cache': 'MISS',
+      'Cache-Control': 'public, max-age=' + CONFIG.cacheTtl,
+      ...CORS,
+    },
+  });
+  },
+};
+
+function clampInt(v, min, max, dflt) {
+  const n = parseInt(v, 10);
+  if (isNaN(n)) return dflt;
+  return Math.max(min, Math.min(max, n));
+}
+
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}`;
+    }
+  },
+
+  /* ---- 6. Custom / Empty ---- */
+  custom: {
+    id: 'custom',
+    name: 'Custom Worker',
+    description: 'Minimal boilerplate with CORS + health check.',
+    icon: 'code',
+    fields: [
+      { key: 'workerName', label: 'Worker name', type: 'text', default: 'my-worker' },
+      { key: 'corsOrigin', label: 'CORS origin', type: 'text', default: '*' }
+    ],
+    generate(cfg) {
+      return `/**
+ * ${cfg.workerName}
+ * Generated by Worker Forge — minimal starter.
+ */
+
+const CORS = {
+  'Access-Control-Allow-Origin': '${cfg.corsOrigin}',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
+  });
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === '/health') {
+      return json({ ok: true, ts: Date.now() });
+    }
+
+    // TODO: your logic here
+
+    return json({
+      message: 'Hello from ${cfg.workerName}',
+      path: url.pathname,
+      method: request.method,
+    });
+  },
+};`;
+    }
+  }
+};
+
+/* ============================================================
+   LZString (needed to embed code in Cloudflare Playground URLs)
+   The playground encodes shared code in the URL fragment using
+   LZString.compressToEncodedURIComponent().
+   ============================================================ */
+const LZString = (function () {
+  const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+  const baseReverseDic = {};
+  function getBaseValue(alphabet, character) {
+    if (!baseReverseDic[alphabet]) {
+      baseReverseDic[alphabet] = {};
+      for (let i = 0; i < alphabet.length; i++) baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+    }
+    return baseReverseDic[alphabet][character];
+  }
+  function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+    if (uncompressed == null) return "";
+    let i, value;
+    const context_dictionary = {};
+    const context_dictionaryToCreate = {};
+    let context_c = "";
+    let context_wc = "";
+    let context_w = "";
+    let context_enlargeIn = 2;
+    let context_dictSize = 3;
+    let context_numBits = 2;
+    const context_data = [];
+    let context_data_val = 0;
+    let context_data_position = 0;
+    let ii;
+
+    for (ii = 0; ii < uncompressed.length; ii += 1) {
+      context_c = uncompressed.charAt(ii);
+      if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+        context_dictionary[context_c] = context_dictSize++;
+        context_dictionaryToCreate[context_c] = true;
+      }
+      context_wc = context_w + context_c;
+      if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+        context_w = context_wc;
+      } else {
+        if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+          if (context_w.charCodeAt(0) < 256) {
+            for (i = 0; i < context_numBits; i++) {
+              context_data_val = (context_data_val << 1);
+              if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+              else context_data_position++;
+            }
+            value = context_w.charCodeAt(0);
+            for (i = 0; i < 8; i++) {
+              context_data_val = (context_data_val << 1) | (value & 1);
+              if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+              else context_data_position++;
+              value = value >> 1;
+            }
+          } else {
+            value = 1;
+            for (i = 0; i < context_numBits; i++) {
+              context_data_val = (context_data_val << 1) | value;
+              if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+              else context_data_position++;
+              value = 0;
+            }
+            value = context_w.charCodeAt(0);
+            for (i = 0; i < 16; i++) {
+              context_data_val = (context_data_val << 1) | (value & 1);
+              if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+              else context_data_position++;
+              value = value >> 1;
+            }
+          }
+          context_enlargeIn--;
+          if (context_enlargeIn === 0) { context_enlargeIn = Math.pow(2, context_numBits); context_numBits++; }
+          delete context_dictionaryToCreate[context_w];
+        } else {
+          value = context_dictionary[context_w];
+          for (i = 0; i < context_numBits; i++) {
+            context_data_val = (context_data_val << 1) | (value & 1);
+            if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+            else context_data_position++;
+            value = value >> 1;
+          }
+        }
+        context_enlargeIn--;
+        if (context_enlargeIn === 0) { context_enlargeIn = Math.pow(2, context_numBits); context_numBits++; }
+        context_dictionary[context_wc] = context_dictSize++;
+        context_w = String(context_c);
+      }
+    }
+
+    if (context_w !== "") {
+      if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+        if (context_w.charCodeAt(0) < 256) {
+          for (i = 0; i < context_numBits; i++) {
+            context_data_val = (context_data_val << 1);
+            if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+            else context_data_position++;
+          }
+          value = context_w.charCodeAt(0);
+          for (i = 0; i < 8; i++) {
+            context_data_val = (context_data_val << 1) | (value & 1);
+            if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+            else context_data_position++;
+            value = value >> 1;
+          }
+        } else {
+          value = 1;
+          for (i = 0; i < context_numBits; i++) {
+            context_data_val = (context_data_val << 1) | value;
+            if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+            else context_data_position++;
+            value = 0;
+          }
+          value = context_w.charCodeAt(0);
+          for (i = 0; i < 16; i++) {
+            context_data_val = (context_data_val << 1) | (value & 1);
+            if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+            else context_data_position++;
+            value = value >> 1;
+          }
+        }
+        context_enlargeIn--;
+        if (context_enlargeIn === 0) { context_enlargeIn = Math.pow(2, context_numBits); context_numBits++; }
+        delete context_dictionaryToCreate[context_w];
+      } else {
+        value = context_dictionary[context_w];
+        for (i = 0; i < context_numBits; i++) {
+          context_data_val = (context_data_val << 1) | (value & 1);
+          if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+          else context_data_position++;
+          value = value >> 1;
+        }
+      }
+      context_enlargeIn--;
+      if (context_enlargeIn === 0) { context_enlargeIn = Math.pow(2, context_numBits); context_numBits++; }
+    }
+    value = 2;
+    for (i = 0; i < context_numBits; i++) {
+      context_data_val = (context_data_val << 1) | (value & 1);
+      if (context_data_position === bitsPerChar - 1) { context_data_position = 0; context_data.push(getCharFromInt(context_data_val)); context_data_val = 0; }
+      else context_data_position++;
+      value = value >> 1;
+    }
+    while (true) {
+      context_data_val = (context_data_val << 1);
+      if (context_data_position === bitsPerChar - 1) { context_data.push(getCharFromInt(context_data_val)); break; }
+      else context_data_position++;
+    }
+    return context_data.join("");
+  }
+  return {
+    compressToEncodedURIComponent: function (input) {
+      if (input == null) return "";
+      return _compress(input, 6, function (a) { return keyStrUriSafe.charAt(a); });
+    }
+  };
+})();
+
+/* ============================================================
+   ZIP BUILDER (STORE-only, no compression — but valid zip)
+   ============================================================ */
+const CRC_TABLE = (function () {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function makeZip(files) {
+  const enc = new TextEncoder();
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  const dt = new Date();
+  const dosTime = ((dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate()) & 0xFFFF;
+
+  for (const f of files) {
+    const nameBytes = enc.encode(f.name);
+    const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const crc = crc32(data);
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const dv = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true);
+    dv.setUint16(6, 0x0800, true);
+    dv.setUint16(8, 0, true);
+    dv.setUint16(10, dosTime, true);
+    dv.setUint16(12, dosDate, true);
+    dv.setUint32(14, crc, true);
+    dv.setUint32(18, data.length, true);
+    dv.setUint32(22, data.length, true);
+    dv.setUint16(26, nameBytes.length, true);
+    dv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+    chunks.push(local, data);
+
+    const ce = new Uint8Array(46 + nameBytes.length);
+    const cdv = new DataView(ce.buffer);
+    cdv.setUint32(0, 0x02014b50, true);
+    cdv.setUint16(4, 20, true);
+    cdv.setUint16(6, 20, true);
+    cdv.setUint16(8, 0x0800, true);
+    cdv.setUint16(10, 0, true);
+    cdv.setUint16(12, dosTime, true);
+    cdv.setUint16(14, dosDate, true);
+    cdv.setUint32(16, crc, true);
+    cdv.setUint32(20, data.length, true);
+    cdv.setUint32(24, data.length, true);
+    cdv.setUint16(28, nameBytes.length, true);
+    cdv.setUint16(30, 0, true);
+    cdv.setUint16(32, 0, true);
+    cdv.setUint16(34, 0, true);
+    cdv.setUint16(36, 0, true);
+    cdv.setUint32(38, 0, true);
+    cdv.setUint32(42, offset, true);
+    ce.set(nameBytes, 46);
+    central.push(ce);
+    offset += local.length + data.length;
+  }
+
+  const centralSize = central.reduce((s, c) => s + c.length, 0);
+  const end = new Uint8Array(22);
+  const edv = new DataView(end.buffer);
+  edv.setUint32(0, 0x06054b50, true);
+  edv.setUint16(8, files.length, true);
+  edv.setUint16(10, files.length, true);
+  edv.setUint32(12, centralSize, true);
+  edv.setUint32(16, offset, true);
+
+  return new Blob([...chunks, ...central, end], { type: 'application/zip' });
+}
+
+/* ============================================================
+   LOCAL RUNNER — mock Cloudflare runtime for testing
+   ============================================================ */
+const LocalRunner = (function () {
+  const kvStore = new Map();
+  let hitCount = 0, missCount = 0, fetchCount = 0;
+  const callLog = [];
+
+  function reset() {
+    kvStore.clear();
+    hitCount = 0; missCount = 0; fetchCount = 0;
+    callLog.length = 0;
+  }
+
+  function log(entry) {
+    callLog.push({ ...entry, ts: Date.now() });
+    if (callLog.length > 200) callLog.shift();
+  }
+
+  function makeEnv() {
+    return {
+      CACHE_KV: {
+        async get(key, opts) {
+          const v = kvStore.get(key);
+          if (v === undefined || v === null) { missCount++; log({ op: 'KV GET', key, result: 'MISS' }); return null; }
+          hitCount++;
+          log({ op: 'KV GET', key, result: 'HIT', bytes: v.byteLength || v.length });
+          if (opts && opts.type === 'json') return JSON.parse(typeof v === 'string' ? v : new TextDecoder().decode(v));
+          if (opts && opts.type === 'arrayBuffer') return v instanceof ArrayBuffer ? v : new TextEncoder().encode(v).buffer;
+          return v;
+        },
+        async put(key, value, opts) {
+          const stored = value instanceof ArrayBuffer ? value
+            : value instanceof Uint8Array ? value.buffer
+            : String(value);
+          kvStore.set(key, stored);
+          log({ op: 'KV PUT', key, bytes: stored.byteLength || stored.length, ttl: opts?.expirationTtl });
+          return true;
+        },
+        async delete(key) { kvStore.delete(key); log({ op: 'KV DELETE', key }); return true; }
+      },
+      AI: {
+        async run(model, inputs) {
+          log({ op: 'AI RUN', model, inputs });
+          // Workers AI is NOT available in the browser. Return a helpful error.
+          throw new Error('Workers AI is not available in the browser preview. Deploy the Worker to Cloudflare to use env.AI.');
+        }
+      },
+      PROXY_TOKEN: 'demo-token'
+    };
+  }
+
+  async function run(code, request, { interceptFetch = true } = {}) {
+    // Strip ESM exports so the code can be evaluated as a function body.
+    let body = code
+      .replace(/export\s+default\s+/g, 'var __default = ')
+      .replace(/^\s*export\s+/gm, '');
+    body += '\nreturn typeof __default !== "undefined" ? __default : null;';
+
+    const wrappedFetch = interceptFetch
+      ? async function (input, init) {
+          fetchCount++;
+          const url = typeof input === 'string' ? input : input.url;
+          const t0 = performance.now();
+          try {
+            const res = await fetch(input, init);
+            log({ op: 'FETCH', url: url.slice(0, 200), status: res.status, ms: Math.round(performance.now() - t0) });
+            return res;
+          } catch (e) {
+            log({ op: 'FETCH', url: url.slice(0, 200), error: e.message });
+            throw e;
+          }
+        }
+      : fetch;
+
+    const cachesShim = {
+      default: {
+        async match() { return null; },
+        async put() {}
+      }
+    };
+
+    const ctx = {
+      waitUntil: (p) => { Promise.resolve(p).catch(err => log({ op: 'waitUntil', error: err.message })); }
+    };
+
+    let handler;
+    try {
+      const fn = new Function('fetch', 'caches', 'Request', 'Response', 'Headers', 'URL', 'TextDecoder', 'TextEncoder', 'atob', 'btoa', 'crypto', body);
+      handler = fn(wrappedFetch, cachesShim, Request, Response, Headers, URL, TextDecoder, TextEncoder, atob, btoa, crypto);
+    } catch (e) {
+      throw new Error('Syntax error in generated code: ' + e.message);
+    }
+
+    if (!handler || typeof handler.fetch !== 'function') {
+      throw new Error('Generated code did not export a fetch handler.');
+    }
+
+    const env = makeEnv();
+    const t0 = performance.now();
+    const response = await handler.fetch(request, env, ctx);
+    const ms = Math.round(performance.now() - t0);
+
+    // Give waitUntil promises a tick to complete
+    await new Promise(r => setTimeout(r, 10));
+
+    return { response, ms };
+  }
+
+  return {
+    run, reset,
+    stats: () => ({ hits: hitCount, misses: missCount, fetches: fetchCount, entries: kvStore.size }),
+    log: () => callLog.slice()
+  };
+})();
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const State = {
+  templateId: 'image',
+  config: {},
+  code: '',
+  lastResult: null,
+  cacheEnabled: true,
+  view: 'design'
+};
+
+/* Restore last session */
+(function restore() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('wf.session') || 'null');
+    if (saved && saved.templateId && TEMPLATES[saved.templateId]) {
+      State.templateId = saved.templateId;
+      State.config = saved.config || {};
+    }
+  } catch {}
+})();
+function persist() {
+  try {
+    localStorage.setItem('wf.session', JSON.stringify({
+      templateId: State.templateId,
+      config: State.config
+    }));
+  } catch {}
+}
+
+function currentTemplate() { return TEMPLATES[State.templateId]; }
+
+function getConfig() {
+  const tpl = currentTemplate();
+  const cfg = {};
+  for (const f of tpl.fields) {
+    cfg[f.key] = State.config[f.key] !== undefined ? State.config[f.key] : f.default;
+  }
+  return cfg;
+}
+
+function regenerate() {
+  State.code = currentTemplate().generate(getConfig());
+  persist();
+}
+
+/* ============================================================
+   ICONS
+   ============================================================ */
+const ICONS = {
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  proxy: '<path d="M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8"/><circle cx="12" cy="12" r="3"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L11.75 5"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07L12.25 19"/>',
+  shuffle: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
+  code: '<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>',
+  external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/>',
+  play: '<path d="M6 4l14 8-14 8z"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  rocket: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+  terminal: '<path d="M4 17l6-6-6-6M12 19h8"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  zap: '<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',
+  github: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'
+};
+function ico(name, cls) {
+  return '<svg class="' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+function renderSidebar() {
+  const host = $('#sbNav');
+  const tpls = Object.values(TEMPLATES);
+  host.innerHTML =
+    '<div class="sb-label">Templates</div>' +
+    tpls.map(t => (
+      '<button class="sb-item' + (t.id === State.templateId ? ' active' : '') + '" data-tpl="' + t.id + '">' +
+        ico(t.icon) + '<span>' + esc(t.name) + '</span>' +
+      '</button>'
+    )).join('') +
+    '<div class="sb-label">Workspace</div>' +
+    '<button class="sb-item" data-view="deploy">' + ico('rocket') + '<span>Deploy</span></button>' +
+    '<button class="sb-item" data-view="share">' + ico('share') + '<span>Share</span></button>' +
+    '<button class="sb-item" data-view="docs">' + ico('info') + '<span>Guide</span></button>';
+}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+const Views = {};
+
+/* ---------------- DESIGN ---------------- */
+Views.design = {
+  title: 'Design',
+  subtitle: 'Choose a template and configure your Worker',
+  render() {
+    const tpl = currentTemplate();
+    const cfg = getConfig();
+    const root = el('<div></div>');
+
+    root.appendChild(el(
+      '<div class="page-head" style="margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px">' + esc(tpl.name) + '</h2>' +
+          '<p style="font-size:13px;color:var(--text-2);margin:0">' + esc(tpl.description) + '</p>' +
+        '</div>' +
+      '</div>'
+    ));
+
+    const grid = el('<div class="grid-2"></div>');
+
+    // Config form
+    const formCard = el(
+      '<div class="card">' +
+        '<div class="card-head">' +
+          '<h3 class="card-title">' + ico('code') + ' Configuration</h3>' +
+        '</div>' +
+        '<div class="card-body" id="cfgForm"></div>' +
+      '</div>'
+    );
+    grid.appendChild(formCard);
+
+    const cfgForm = $('#cfgForm', formCard);
+    for (const f of tpl.fields) {
+      const field = el(
+        '<div class="field">' +
+          '<label for="f_' + f.key + '">' + esc(f.label) + (f.hint ? ' <span class="hint">' + esc(f.hint) + '</span>' : '') + '</label>' +
+        '</div>'
+      );
+      let input;
+      if (f.type === 'select') {
+        input = el('<select class="select" id="f_' + f.key + '"></select>');
+        for (const o of f.options) {
+          const opt = el('<option value="' + esc(o.value) + '">' + esc(o.label) + '</option>');
+          if (String(cfg[f.key]) === String(o.value)) opt.selected = true;
+          input.appendChild(opt);
+        }
+      } else if (f.type === 'number') {
+        input = el('<input class="input" type="number" id="f_' + f.key + '" value="' + esc(cfg[f.key]) + '">');
+      } else {
+        input = el('<input class="input" type="text" id="f_' + f.key + '" value="' + esc(cfg[f.key]) + '" autocomplete="off" spellcheck="false">');
+      }
+      input.addEventListener('input', () => {
+        State.config[f.key] = input.value;
+        regenerate();
+        updateCodePreview();
+      });
+      input.addEventListener('change', () => {
+        State.config[f.key] = input.value;
+        regenerate();
+        updateCodePreview();
+      });
+      field.appendChild(input);
+      cfgForm.appendChild(field);
+    }
+
+    // Code preview card
+    const codeCard = el(
+      '<div class="card">' +
+        '<div class="card-head">' +
+          '<h3 class="card-title">' + ico('terminal') + ' Generated Worker code</h3>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="btn sm ghost" id="copyCode">' + ico('copy') + ' Copy</button>' +
+            '<button class="btn sm ghost" id="dlCode">' + ico('download') + ' .js</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="code-block" style="border:none;border-radius:0">' +
+          '<div class="code-head"><span class="lang">JavaScript (ESM)</span><span id="codeStats"></span></div>' +
+          '<pre class="code" id="codeOut"></pre>' +
+        '</div>' +
+      '</div>'
+    );
+    grid.appendChild(codeCard);
+
+    root.appendChild(grid);
+    setTimeout(updateCodePreview, 0);
+
+    $('#copyCode', root).addEventListener('click', async () => {
+      const ok = await copyToClipboard(State.code);
+      ok ? Toast.ok('Code copied (' + State.code.length + ' chars)') : Toast.err('Copy failed');
+    });
+    $('#dlCode', root).addEventListener('click', () => {
+      const blob = new Blob([State.code], { type: 'text/javascript' });
+      downloadBlob(blob, getConfig().workerName + '.js');
+      Toast.ok('Downloaded ' + getConfig().workerName + '.js');
+    });
+
+    return root;
+  }
+};
+
+function updateCodePreview() {
+  const out = $('#codeOut');
+  if (!out) return;
+  out.innerHTML = highlightJS(State.code);
+  const stats = $('#codeStats');
+  if (stats) stats.textContent = State.code.length + ' chars · ' + State.code.split('\n').length + ' lines';
+}
+
+/* ---------------- TEST ---------------- */
+Views.test = {
+  title: 'Test',
+  subtitle: 'Run the generated Worker locally with a mock runtime',
+  render() {
+    regenerate();
+    const tpl = currentTemplate();
+    const root = el('<div></div>');
+
+    root.appendChild(el(
+      '<div class="page-head" style="margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px">Test locally</h2>' +
+          '<p style="font-size:13px;color:var(--text-2);margin:0">Runs the actual generated code with a mocked KV, AI and ctx runtime. Real HTTP requests go out.</p>' +
+        '</div>' +
+        '<button class="btn sm ghost" id="resetKv">' + ico('refresh') + ' Reset cache</button>' +
+      '</div>'
+    ));
+
+    const grid = el('<div class="grid-2"></div>');
+
+    // Request builder
+    const reqCard = el(
+      '<div class="card">' +
+        '<div class="card-head"><h3 class="card-title">' + ico('play') + ' Request</h3></div>' +
+        '<div class="card-body">' +
+          '<div class="field">' +
+            '<label for="reqMethod">Method</label>' +
+            '<select class="select" id="reqMethod"><option>GET</option><option>POST</option></select>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label for="reqPath">Path</label>' +
+            '<input class="input" id="reqPath" value="/" autocomplete="off">' +
+          '</div>' +
+          '<div class="field" id="bodyField" style="display:none">' +
+            '<label for="reqBody">JSON body</label>' +
+            '<textarea class="textarea" id="reqBody" spellcheck="false"></textarea>' +
+          '</div>' +
+          '<button class="btn primary block" id="sendReq">' + ico('play') + ' Send request</button>' +
+          '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">' +
+            '<div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px">Runtime stats</div>' +
+            '<div class="grid-3" id="stats">' +
+              '<div style="text-align:center"><div style="font-size:22px;font-weight:600;font-family:var(--mono)" id="statHits">0</div><div style="font-size:11px;color:var(--text-3)">KV hits</div></div>' +
+              '<div style="text-align:center"><div style="font-size:22px;font-weight:600;font-family:var(--mono)" id="statMisses">0</div><div style="font-size:11px;color:var(--text-3)">KV misses</div></div>' +
+              '<div style="text-align:center"><div style="font-size:22px;font-weight:600;font-family:var(--mono)" id="statFetches">0</div><div style="font-size:11px;color:var(--text-3)">fetches</div></div>' +
+            '</div>' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+    grid.appendChild(reqCard);
+
+    // Response panel
+    const resCard = el(
+      '<div class="card">' +
+        '<div class="card-head">' +
+          '<h3 class="card-title">' + ico('zap') + ' Response</h3>' +
+          '<span id="resMeta" style="font-size:11.5px;color:var(--text-3);font-family:var(--mono)"></span>' +
+        '</div>' +
+        '<div class="card-body" style="padding:0" id="resBody">' +
+          '<div class="empty" style="padding:48px 20px">' +
+            ico('zap') +
+            '<h3>No request sent yet</h3>' +
+            '<p>Click <strong>Send request</strong> to run your Worker locally.</p>' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+    grid.appendChild(resCard);
+
+    root.appendChild(grid);
+
+    // Wire up
+    const method = $('#reqMethod', root);
+    const bodyField = $('#bodyField', root);
+    const reqBody = $('#reqBody', root);
+
+    method.addEventListener('change', () => {
+      bodyField.style.display = method.value === 'POST' ? '' : 'none';
+    });
+
+    // Preset defaults per template
+    setTimeout(() => {
+      const tplId = State.templateId;
+      if (tplId === 'image') { reqBody.value = JSON.stringify({ prompt: 'a serene japanese garden in autumn, golden hour', model: 'flux', width: 1024, height: 1024 }, null, 2); }
+      else if (tplId === 'chat') { method.value = 'POST'; method.dispatchEvent(new Event('change')); reqBody.value = JSON.stringify({ messages: [{ role: 'user', content: 'Say hello in 5 words.' }], max_tokens: 64 }, null, 2); }
+      else if (tplId === 'proxy') { $('#reqPath', root).value = '/proxy?url=https://jsonplaceholder.typicode.com/todos/1'; }
+      else if (tplId === 'shortener') { method.value = 'POST'; method.dispatchEvent(new Event('change')); reqBody.value = JSON.stringify({ url: 'https://example.com/some/long/path?utm_source=test' }, null, 2); }
+      else if (tplId === 'random') { $('#reqPath', root).value = '/random?w=600&h=400'; }
+    }, 0);
+
+    $('#resetKv', root).addEventListener('click', () => {
+      LocalRunner.reset();
+      updateStats();
+      Toast.info('Local KV cleared');
+    });
+
+    $('#sendReq', root).addEventListener('click', async () => {
+      const btn = $('#sendReq', root);
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Running…';
+
+      const resBody = $('#resBody', root);
+      const resMeta = $('#resMeta', root);
+      resBody.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner lg"></span><div style="margin-top:12px;font-size:12.5px;color:var(--text-3)">Executing Worker…</div></div>';
+      resMeta.textContent = '';
+
+      try {
+        regenerate();
+        const m = method.value;
+        const path = $('#reqPath', root).value.trim() || '/';
+        const origin = 'https://' + getConfig().workerName + '.example.workers.dev';
+        const reqInit = { method: m, headers: {} };
+        if (m === 'POST' && reqBody.value.trim()) {
+          reqInit.body = reqBody.value;
+          reqInit.headers['Content-Type'] = 'application/json';
+        }
+        const req = new Request(origin + path, reqInit);
+
+        const { response, ms } = await LocalRunner.run(State.code, req, { interceptFetch: true });
+        await renderResponse(resBody, resMeta, response, ms);
+      } catch (e) {
+        resBody.innerHTML = '<div style="padding:24px"><div style="padding:14px;border-radius:10px;background:var(--red-soft);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:12.5px;line-height:1.6">' +
+          '<strong style="display:block;margin-bottom:6px">✗ Runtime error</strong>' +
+          esc(e.message) +
+          "</div></div>";
+        resMeta.textContent = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = ico('play') + ' Send request';
+        updateStats();
+      }
+    });
+
+    return root;
+  }
+};
+
+async function renderResponse(host, metaEl, response, ms) {
+  const contentType = response.headers.get('Content-Type') || '';
+  const headers = [];
+  response.headers.forEach((v, k) => headers.push([k, v]));
+
+  metaEl.textContent = response.status + ' ' + response.statusText + ' · ' + ms + 'ms';
+
+  let bodyHTML = '';
+  if (contentType.includes('image/')) {
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    bodyHTML =
+      '<div style="padding:16px">' +
+        '<img src="' + url + '" alt="Response image">' +
+        '<div style="text-align:center;margin-top:12px;font-size:11.5px;color:var(--text-3);font-family:var(--mono)">' +
+          fmtBytes(blob.size) + ' · ' + contentType +
+        "</div>" +
+      "</div>";
+  } else {
+    const text = await response.text();
+    let pretty = text;
+    if (contentType.includes('json')) {
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+    }
+    bodyHTML =
+      '<div style="padding:0">' +
+        '<div class="code-block" style="border:none;border-radius:0">' +
+          '<div class="code-head"><span class="lang">' + esc(contentType.split(';')[0] || 'text') + '</span><span>' + fmtBytes(text.length) + "</span></div>" +
+          '<pre class="code" style="max-height:340px">' + (contentType.includes('json') ? highlightJS(pretty) : esc(pretty)) + "</pre>" +
+        "</div>" +
+      "</div>";
+  }
+
+  host.innerHTML =
+    '<div style="padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface-2)">' +
+      '<div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">Response headers</div>' +
+      '<div style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);line-height:1.7">' +
+        headers.map(([k, v]) => '<div><span style="color:var(--accent)">' + esc(k) + '</span>: ' + esc(v.slice(0, 120)) + "</div>").join("") +
+      "</div>" +
+    "</div>" +
+    bodyHTML +
+    '<div style="padding:12px 18px;border-top:1px solid var(--border);background:var(--surface-2)">' +
+      '<div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px">Execution log</div>' +
+      '<div style="font-family:var(--mono);font-size:11.5px;color:var(--text-2);line-height:1.6;max-height:160px;overflow-y:auto">' +
+        LocalRunner.log().slice(-30).map(l => {
+          const icon = l.op === 'KV GET' ? (l.result === 'HIT' ? '✓' : '·') : l.op === 'KV PUT' ? '↓' : l.op === 'FETCH' ? '→' : '·';
+          const color = l.error || (l.status && l.status >= 400) ? 'var(--red)' : l.result === 'HIT' ? 'var(--green)' : 'var(--text-3)';
+          const detail = l.op === 'KV GET' ? (l.key.slice(0, 40) + ' → ' + l.result)
+                       : l.op === 'KV PUT' ? (l.key.slice(0, 40) + ' (' + fmtBytes(l.bytes) + ')')
+                       : l.op === 'FETCH' ? ((l.status || l.error) + ' · ' + (l.ms || 0) + 'ms · ' + (l.url || '').slice(0, 70))
+                       : JSON.stringify(l).slice(0, 100);
+          return '<div style="color:' + color + '">' + icon + ' ' + esc(l.op) + '  ' + esc(detail) + "</div>";
+        }).join("") || '<div style="color:var(--text-3)">— no operations yet —</div>' +
+      "</div>" +
+    "</div>";
+
+  setTimeout(() => URL.revokeObjectURL, 60000);
+}
+
+function updateStats() {
+  const s = LocalRunner.stats();
+  const h = $('#statHits'), m = $('#statMisses'), f = $('#statFetches');
+  if (h) h.textContent = s.hits;
+  if (m) m.textContent = s.misses;
+  if (f) f.textContent = s.fetches;
+  const sb = $('#sbCache');
+  if (sb) sb.textContent = s.entries;
+}
+
+/* ---------------- DEPLOY ---------------- */
+Views.deploy = {
+  title: 'Deploy',
+  subtitle: 'Three ways to ship this Worker to Cloudflare',
+  render() {
+    regenerate();
+    const cfg = getConfig();
+    const root = el('<div></div>');
+
+    root.appendChild(el(
+      '<div class="page-head" style="margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px">Deploy to Cloudflare</h2>' +
+          '<p style="font-size:13px;color:var(--text-2);margin:0">Free tier: 100,000 requests/day, no credit card required.</p>' +
+        "</div>" +
+      "</div>"
+    ));
+
+    const steps = el('<div class="card"><div class="card-body" style="padding:0 20px"><div class="steps" id="steps"></div></div></div>');
+    root.appendChild(steps);
+    const stepsHost = $('#steps', steps);
+
+    /* ---- Method 1: Playground (fastest) ---- */
+    const step1 = el(
+      '<div class="step">' +
+        '<div class="step-num">1</div>' +
+        '<div class="step-body">' +
+          '<h4 class="step-title">Fastest — Cloudflare Playground</h4>' +
+          '<p class="step-desc">Opens Cloudflare\'s in-browser Playground with your code already loaded. Click <strong>Deploy</strong> there and you get a live <code>*.workers.dev</code> URL in ~30 seconds. No account setup, no CLI.</p>' +
+          '<div class="step-action" style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button class="btn primary sm" id="openPlayground">' + ico('external') + ' Open Playground with code</button>' +
+            '<button class="btn sm ghost" id="copyForPlayground">' + ico('copy') + ' Copy code only</button>' +
+          "</div>" +
+          '<div style="margin-top:10px;font-size:11.5px;color:var(--text-3);line-height:1.5">' +
+            'Note: KV / Workers AI bindings cannot be configured in the Playground. ' +
+            'For bindings, use method 2 or 3.' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+
+    /* ---- Method 2: GitHub + Deploy button ---- */
+    const step2 = el(
+      '<div class="step">' +
+        '<div class="step-num">2</div>' +
+        '<div class="step-body">' +
+          '<h4 class="step-title">Recommended — GitHub + one-click Deploy Button</h4>' +
+          '<p class="step-desc">Download a ready-to-push project ZIP with <code>wrangler.jsonc</code>, <code>package.json</code> and <code>src/index.js</code>. Push it to a public GitHub repo, then share the deploy link. Cloudflare clones the repo, auto-provisions KV namespaces and Workers AI bindings, and deploys it to your account.</p>' +
+          '<div class="step-action" style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button class="btn primary sm" id="dlProject">' + ico('download') + ' Download project .zip</button>' +
+            '<button class="btn sm ghost" id="showWrangler">' + ico('code') + ' Preview wrangler.jsonc</button>' +
+          "</div>" +
+          '<div style="margin-top:12px">' +
+            '<div style="font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px">Your Deploy Button (paste into README.md)</div>' +
+            '<div class="copy-row"><span class="val" id="deployBtnUrl">' + esc(CONFIG.deploy.deployButtonBase + 'https://github.com/YOUR-USERNAME/' + cfg.workerName) + '</span>' +
+              '<button id="copyDeployBtn" aria-label="Copy">' + ico('copy') + "</button></div>" +
+            '<div style="margin-top:8px;font-size:11.5px;color:var(--text-3)">Replace <code>YOUR-USERNAME</code> with your GitHub username after pushing.</div>' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+
+    /* ---- Method 3: CLI ---- */
+    const step3 = el(
+      '<div class="step">' +
+        '<div class="step-num">3</div>' +
+        '<div class="step-body">' +
+          '<h4 class="step-title">Power users — Wrangler CLI</h4>' +
+          '<p class="step-desc">Full control. Deploy from your terminal in under a minute. Requires Node.js 18+.</p>' +
+          '<div class="step-action">' +
+            '<button class="btn sm ghost" id="showCli">' + ico('terminal') + ' Show CLI commands</button>' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+
+    stepsHost.appendChild(step1);
+    stepsHost.appendChild(step2);
+    stepsHost.appendChild(step3);
+
+    /* ---- Wire up ---- */
+    $('#openPlayground', root).addEventListener('click', () => {
+      const compressed = LZString.compressToEncodedURIComponent(State.code);
+      const url = CONFIG.deploy.playgroundBase + '#' + compressed;
+      if (url.length > 8000) {
+        Toast.warn('Code is too large for a URL — copying to clipboard instead');
+        copyToClipboard(State.code).then(() => {
+          window.open(CONFIG.deploy.playgroundBase, '_blank');
+        });
+        return;
+      }
+      window.open(url, '_blank', 'noopener');
+      Toast.ok('Playground opened — click "Deploy" there');
+    });
+
+    $('#copyForPlayground', root).addEventListener('click', async () => {
+      const ok = await copyToClipboard(State.code);
+      ok ? Toast.ok('Code copied — paste into the Playground editor') : Toast.err('Copy failed');
+      window.open(CONFIG.deploy.playgroundBase, '_blank', 'noopener');
+    });
+
+    $('#copyDeployBtn', root).addEventListener('click', async () => {
+      const url = CONFIG.deploy.deployButtonBase + 'https://github.com/YOUR-USERNAME/' + cfg.workerName;
+      const md = '[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](' + url + ')';
+      const ok = await copyToClipboard(md);
+      ok ? Toast.ok('Deploy button markdown copied') : Toast.err('Copy failed');
+    });
+
+    $('#dlProject', root).addEventListener('click', () => {
+      const files = buildProjectFiles(cfg);
+      const zip = makeZip(files);
+      downloadBlob(zip, cfg.workerName + '-worker.zip');
+      Toast.ok('Downloaded ' + cfg.workerName + '-worker.zip · ' + files.length + ' files');
+    });
+
+    $('#showWrangler', root).addEventListener('click', () => {
+      showCodeModal('wrangler.jsonc', buildWranglerJsonc(cfg));
+    });
+
+    $('#showCli', root).addEventListener('click', () => {
+      showCodeModal('Wrangler CLI deployment', buildCliInstructions(cfg));
+    });
+
+    return root;
+  }
+};
+
+function buildWranglerJsonc(cfg) {
+  const bindings = [];
+  // All our templates need KV for caching (except chat)
+  if (State.templateId !== 'chat') {
+    bindings.push('    { "binding": "CACHE_KV", "id": "00000000000000000000000000000000" }');
+  }
+  if (State.templateId === 'chat' || (State.templateId === 'image' && cfg.upstream === 'workers-ai')) {
+    bindings.push('    { "binding": "AI" }');
+  }
+
+  return `{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "${cfg.workerName}",
+  "main": "src/index.js",
+  "compatibility_date": "${new Date().toISOString().slice(0, 10)}",
+  "observability": { "enabled": true }${bindings.length ? ',\n  ' + (bindings.some(b => b.includes('CACHE_KV')) && bindings.some(b => b.includes('AI'))
+    ? '"kv_namespaces": [\n    { "binding": "CACHE_KV", "id": "00000000000000000000000000000000" }\n  ],\n  "ai": { "binding": "AI" }'
+    : bindings.some(b => b.includes('CACHE_KV'))
+      ? '"kv_namespaces": [\n    { "binding": "CACHE_KV", "id": "00000000000000000000000000000000" }\n  ]'
+      : '"ai": { "binding": "AI" }') : ''}
+}
+`;
+}
+
+function buildPackageJson(cfg) {
+  return JSON.stringify({
+    name: cfg.workerName,
+    version: '1.0.0',
+    private: true,
+    scripts: {
+      dev: 'wrangler dev',
+      deploy: 'wrangler deploy',
+      tail: 'wrangler tail'
+    },
+    devDependencies: { wrangler: '^4.0.0' }
+  }, null, 2) + '\n';
+}
+
+function buildReadme(cfg) {
+  const url = CONFIG.deploy.deployButtonBase + 'https://github.com/YOUR-USERNAME/' + cfg.workerName;
+  return `# ${cfg.workerName}
+
+Generated by **Worker Forge** — a Cloudflare Worker.
+
+## One-click deploy
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](${url})
+
+> Replace \`YOUR-USERNAME\` with your GitHub username after pushing this repo.
+
+## Manual deploy
+
+\`\`\`bash
+npm install
+npx wrangler deploy
+\`\`\`
+
+## Template
+
+**${currentTemplate().name}** — ${currentTemplate().description}
+
+## Endpoints
+
+See the source code for the exact routes.
+
+## Notes
+
+- KV namespace \`CACHE_KV\` is auto-provisioned by the Deploy Button.
+- Edit \`wrangler.jsonc\` to change bindings.
+`;
+}
+
+function buildProjectFiles(cfg) {
+  const enc = new TextEncoder();
+  return [
+    { name: cfg.workerName + '/src/index.js', data: enc.encode(State.code) },
+    { name: cfg.workerName + '/wrangler.jsonc', data: enc.encode(buildWranglerJsonc(cfg)) },
+    { name: cfg.workerName + '/package.json', data: enc.encode(buildPackageJson(cfg)) },
+    { name: cfg.workerName + '/README.md', data: enc.encode(buildReadme(cfg)) },
+    { name: cfg.workerName + '/.gitignore', data: enc.encode('node_modules/\n.wrangler/\n.dev.vars\n') }
+  ];
+}
+
+function buildCliInstructions(cfg) {
+  return `# Deploy with Wrangler CLI
+
+## 1. Prerequisites
+
+- Node.js 18 or newer
+- A Cloudflare account (free tier is fine)
+
+## 2. Login
+
+\`\`\`bash
+npx wrangler login
+\`\`\`
+
+## 3. Create the KV namespace (if your Worker uses caching)
+
+\`\`\`bash
+npx wrangler kv namespace create CACHE_KV
+\`\`\`
+
+Copy the printed \`id\` and paste it into \`wrangler.jsonc\` in place of the placeholder \`00000000000000000000000000000000\`.
+
+## 4. Save the generated code
+
+Put this into \`src/index.js\`:
+
+\`\`\`javascript
+${State.code}
+\`\`\`
+
+## 5. Deploy
+
+\`\`\`bash
+npx wrangler deploy
+\`\`\`
+
+Wrangler prints your live URL, e.g. \`https://${cfg.workerName}.YOUR-SUBDOMAIN.workers.dev\`.
+
+## 6. Tail logs
+
+\`\`\`bash
+npx wrangler tail
+\`\`\`
+
+## 7. Add a custom domain (optional)
+
+In the Cloudflare dashboard → Workers & Pages → your Worker → Settings → Triggers → Custom Domains.
+`;
+}
+
+function showCodeModal(title, code) {
+  Modal.open(
+    '<div class="modal-head">' +
+      '<div>' +
+        '<h3 class="modal-title">' + esc(title) + '</h3>' +
+        '<p class="modal-sub">Copy to clipboard and use it in your project</p>' +
+      "</div>" +
+      '<button class="btn icon ghost" data-close>' + ico('x') + "</button>" +
+    "</div>" +
+    '<div class="modal-body" style="padding:0">' +
+      '<div class="code-block" style="border:none;border-radius:0">' +
+        '<div class="code-head"><span class="lang">' + esc(title.split(' ')[0]) + '</span>' +
+          '<button class="btn sm ghost" data-copy>' + ico('copy') + ' Copy</button></div>' +
+        '<pre class="code" style="max-height:460px">' + highlightJS(code) + "</pre>" +
+      "</div>" +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn ghost" data-close>Close</button>' +
+    "</div>"
+  );
+  const root = Modal.root;
+  root.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => Modal.close()));
+  const cp = root.querySelector('[data-copy]');
+  if (cp) cp.addEventListener('click', async () => {
+    const ok = await copyToClipboard(code);
+    ok ? Toast.ok('Copied ' + code.length + ' chars') : Toast.err('Copy failed');
+  });
+}
+
+/* ---------------- SHARE ---------------- */
+Views.share = {
+  title: 'Share',
+  subtitle: 'Snippets for calling your Worker',
+  render() {
+    regenerate();
+    const cfg = getConfig();
+    const base = 'https://' + cfg.workerName + '.YOUR-SUBDOMAIN.workers.dev';
+    const root = el('<div></div>');
+
+    root.appendChild(el(
+      '<div class="page-head" style="margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px">Share your API</h2>' +
+          '<p style="font-size:13px;color:var(--text-2);margin:0">Replace <code>YOUR-SUBDOMAIN</code> with the subdomain Cloudflare shows after deployment.</p>' +
+        "</div>" +
+      "</div>"
+    ));
+
+    // Endpoint URL
+    const endpointCard = el(
+      '<div class="card" style="margin-bottom:18px">' +
+        '<div class="card-head"><h3 class="card-title">' + ico('cloud') + ' Endpoint</h3></div>' +
+        '<div class="card-body">' +
+          '<div class="copy-row"><span class="val">' + esc(base) + '</span>' +
+            '<button data-copy="' + esc(base) + '">' + ico('copy') + "</button></div>" +
+          '<div style="margin-top:12px;font-size:12px;color:var(--text-3);line-height:1.6">' +
+            'After deploying, this is your live URL. Cloudflare also shows it in the dashboard under <strong>Workers &amp; Pages → your worker</strong>.' +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+    root.appendChild(endpointCard);
+
+    // Snippets
+    const snippets = buildSnippets(base, cfg, State.templateId);
+    const snippetsCard = el(
+      '<div class="card">' +
+        '<div class="card-head">' +
+          '<h3 class="card-title">' + ico('code') + ' Client snippets</h3>' +
+          '<div class="chips" id="langChips"></div>' +
+        "</div>" +
+        '<div class="card-body" style="padding:0" id="snippetHost"></div>' +
+      "</div>"
+    );
+    root.appendChild(snippetsCard);
+
+    let activeLang = snippets[0].lang;
+    const chips = $('#langChips', snippetsCard);
+    snippets.forEach(s => {
+      const c = el('<button class="chip' + (s.lang === activeLang ? ' active' : '') + '" data-lang="' + s.lang + '">' + esc(s.lang) + '</button>');
+      c.addEventListener('click', () => {
+        activeLang = s.lang;
+        $$('#langChips .chip', root).forEach(x => x.classList.toggle('active', x.dataset.lang === activeLang));
+        renderSnippet();
+      });
+      chips.appendChild(c);
+    });
+
+    function renderSnippet() {
+      const s = snippets.find(x => x.lang === activeLang) || snippets[0];
+      $('#snippetHost', snippetsCard).innerHTML =
+        '<div class="code-block" style="border:none;border-radius:0">' +
+          '<div class="code-head"><span class="lang">' + esc(s.lang) + '</span>' +
+            '<button class="btn sm ghost" data-copy-snippet>' + ico('copy') + ' Copy</button></div>' +
+          '<pre class="code" style="max-height:400px">' + esc(s.code) + "</pre>" +
+        "</div>";
+      const cp = $('#snippetHost', snippetsCard).querySelector('[data-copy-snippet]');
+      if (cp) cp.addEventListener('click', async () => {
+        const ok = await copyToClipboard(s.code);
+        ok ? Toast.ok('Copied ' + s.lang + ' snippet') : Toast.err('Copy failed');
+      });
+    }
+    renderSnippet();
+
+    // Handle endpoint URL copy buttons
+    root.querySelectorAll('[data-copy]').forEach(b => {
+      b.addEventListener('click', async () => {
+        const ok = await copyToClipboard(b.dataset.copy);
+        ok ? Toast.ok('Copied') : Toast.err('Copy failed');
+      });
+    });
+
+    return root;
+  }
+};
+
+function buildSnippets(base, cfg, tplId) {
+  const isImage = tplId === 'image';
+  const isChat = tplId === 'chat';
+  const isProxy = tplId === 'proxy';
+  const isShort = tplId === 'shortener';
+  const isRandom = tplId === 'random';
+
+  let samplePath = '/';
+  let sampleBody = null;
+  if (isImage) { samplePath = '/image?prompt=a%20serene%20garden&model=flux&w=1024&h=1024'; }
+  else if (isChat) { samplePath = '/chat'; sampleBody = '{"messages":[{"role":"user","content":"Hello"}]}'; }
+  else if (isProxy) { samplePath = '/proxy?url=https://jsonplaceholder.typicode.com/todos/1'; }
+  else if (isShort) { samplePath = '/shorten'; sampleBody = '{"url":"https://example.com"}'; }
+  else if (isRandom) { samplePath = '/random?w=800&h=600'; }
+
+  const url = base + samplePath;
+
+  const snippets = [];
+
+  // cURL
+  const curl = sampleBody
+    ? `curl -X POST '${url}' \\\n  -H 'Content-Type: application/json' \\\n  -d '${sampleBody}'`
+    : `curl '${url}' \\\n  -H 'Accept: application/json'`;
+  snippets.push({ lang: 'cURL', code: curl });
+
+  // JavaScript fetch
+  const js = sampleBody
+    ? `const res = await fetch('${url}', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(${prettyJSON(sampleBody)}),
+});
+const data = await res.json();
+console.log(data);`
+    : `const res = await fetch('${url}');
+${isImage ? 'const blob = await res.blob();\nconst imgUrl = URL.createObjectURL(blob);' : 'const data = await res.json();\nconsole.log(data);'}`;
+  snippets.push({ lang: 'JavaScript', code: js });
+
+  // Python
+  const py = sampleBody
+    ? `import requests
+
+res = requests.post(
+    "${url}",
+    json=${prettyPythonJSON(sampleBody)},
+    timeout=60,
+)
+res.raise_for_status()
+print(res.json())`
+    : `import requests
+
+res = requests.get("${url}", timeout=60)
+res.raise_for_status()
+${isImage ? 'with open("output.png", "wb") as f:\n    f.write(res.content)' : 'print(res.json())'}`;
+  snippets.push({ lang: 'Python', code: py });
+
+  // Go
+  const go = sampleBody
+    ? `package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+func main() {
+	body := []byte(\`${sampleBody}\`)
+	res, err := http.Post("${url}", "application/json", bytes.NewReader(body))
+	if err != nil { panic(err) }
+	defer res.Body.Close()
+	out, _ := io.ReadAll(res.Body)
+	fmt.Println(string(out))
+}`
+    : `package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+)
+
+func main() {
+	res, err := http.Get("${url}")
+	if err != nil { panic(err) }
+	defer res.Body.Close()
+	out, _ := io.ReadAll(res.Body)
+	fmt.Println(string(out))
+}`;
+  snippets.push({ lang: 'Go', code: go });
+
+  return snippets;
+}
+
+function prettyJSON(str) {
+  try { return JSON.stringify(JSON.parse(str), null, 2); } catch { return str; }
+}
+function prettyPythonJSON(str) {
+  try {
+    const o = JSON.parse(str);
+    return JSON.stringify(o, null, 4).replace(/true/g, 'True').replace(/false/g, 'False').replace(/null/g, 'None').replace(/"/g, '"');
+  } catch { return str; }
+}
+
+/* ---------------- DOCS ---------------- */
+Views.docs = {
+  title: 'Guide',
+  subtitle: 'How Worker Forge works and what to expect',
+  render() {
+    const root = el('<div style="max-width:760px"></div>');
+
+    root.appendChild(el(
+      '<div class="page-head" style="margin-bottom:20px">' +
+        '<div>' +
+          '<h2 style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px">Guide</h2>' +
+          '<p style="font-size:13px;color:var(--text-2);margin:0">Everything this tool does, and what it can\'t do.</p>' +
+        "</div>" +
+      "</div>"
+    ));
+
+    const sections = [
+      {
+        title: 'What this does',
+        body: 'Worker Forge generates complete, production-ready Cloudflare Worker code. Every template includes real caching (Workers KV), CORS handling, input validation, proper error responses and a health check. You can test the generated code locally — the app executes it with a mocked runtime that mirrors the Cloudflare API surface (env.CACHE_KV, env.AI, ctx.waitUntil).'
+      },
+      {
+        title: 'What this does not do',
+        body: 'This app runs entirely in your browser. It cannot log into your Cloudflare account on your behalf, so it cannot deploy without your interaction. It generates the code, the config files, the ZIP project and the deep links — but the final "Deploy" click happens in Cloudflare\'s own interface. That\'s by design: OAuth tokens held in a browser tab are a real security risk.'
+      },
+      {
+        title: 'Deploy method 1 — Playground',
+        body: 'The fastest path. The app embeds your generated code into a Cloudflare Playground URL using LZString compression (the same format Cloudflare uses for its Share button). You land on the Playground with your code already loaded, click Deploy, and get a live URL in under a minute. Bindings (KV, AI) cannot be configured here — the Playground is code-only.'
+      },
+      {
+        title: 'Deploy method 2 — GitHub + Deploy Button',
+        body: 'Download the generated project as a ZIP. Push it to a public GitHub repo. Cloudflare\'s Deploy Button (`deploy.workers.cloudflare.com/?url=…`) clones the repo into the user\'s account, auto-provisions KV namespaces and Workers AI bindings defined in wrangler.jsonc, and deploys. This is how Cloudflare\'s own templates are distributed — the resources are provisioned for you.'
+      },
+      {
+        title: 'Deploy method 3 — Wrangler CLI',
+        body: 'Full manual control. Requires Node 18+. You create the KV namespace yourself, paste the generated code into src/index.js, and run `npx wrangler deploy`. Best for iteration and debugging with `wrangler tail`.'
+      },
+      {
+        title: 'About the local test',
+        body: 'The Test tab evaluates the generated Worker code with a `new Function` sandbox. It provides real `fetch`, `Request`, `Response`, `Headers`, `URL`, `TextDecoder` and `crypto` — these are native. It also provides a KV shim backed by a Map, a cache shim, and a `ctx.waitUntil` collector. Workers AI is mocked to throw a clear error, because Workers AI only runs on Cloudflare\'s infrastructure. When you see a real HTTP request in the log, that request left your browser.'
+      },
+      {
+        title: 'Free tier limits',
+        body: 'Cloudflare Workers free plan: 100,000 requests per day across all your Workers, 10 ms CPU time per request. Workers KV free: 100,000 reads + 1,000 writes per day. The Cache API is unmetered. For image proxy templates, 100,000 requests/day is generous — most side projects never come close.'
+      },
+      {
+        title: 'Security notes',
+        body: 'The JSON Proxy template ships with a host whitelist to prevent open proxy abuse. Never remove it without adding your own auth. The URL Shortener restricts to http:// and https:// schemes. All generated templates set CORS explicitly — change the CORS origin field to your domain before going to production. If you add a Bearer token check, use `wrangler secret put` — never put secrets in wrangler.jsonc or the code.'
+      },
+      {
+        title: 'Bindings cheat sheet',
+        body: 'KV namespace: `npx wrangler kv namespace create CACHE_KV` — paste the returned ID into wrangler.jsonc. Workers AI: add `"ai": { "binding": "AI" }` to wrangler.jsonc — no additional setup. Workers AI models used here: `@cf/black-forest-labs/flux-1-schnell` (4-step distilled FLUX, very fast), `@cf/meta/llama-3.1-8b-instruct` (chat).'
+      }
+    ];
+
+    for (const s of sections) {
+      root.appendChild(el(
+        '<div class="card" style="margin-bottom:14px">' +
+          '<div class="card-body">' +
+            '<h3 style="font-size:14px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">' + esc(s.title) + "</h3>" +
+            '<p style="font-size:13px;color:var(--text-2);line-height:1.65;margin:0">' + esc(s.body) + "</p>" +
+          "</div>" +
+        "</div>"
+      ));
+    }
+
+    return root;
+  }
+};
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const Router = {
+  async render(name) {
+    State.view = name;
+    if (name === 'design' || name === 'test') regenerate();
+    renderSidebar();
+    const view = Views[name] || Views.design;
+    const host = $('#view');
+    host.innerHTML = '';
+    const node = view.render();
+    host.appendChild(node);
+    $('#pageTitle').textContent = view.title || 'Worker Forge';
+    document.title = (view.title || 'Worker Forge') + ' · Worker Forge';
+    $$('.sb-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.tpl === State.templateId || b.dataset.view === name);
+    });
+    window.scrollTo({ top: 0 });
+  },
+  go(name) {
+    if (name === 'design') { location.hash = ''; return; }
+    location.hash = name;
+  }
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+async function boot() {
+  Toast.init();
+  Modal.root = $('#modal');
+  Modal.backdrop = $('#modalBackdrop');
+  regenerate();
+  await Router.render('design');
+  if (window.innerWidth < 1000) $('#btnMenu').style.display = 'grid';
+
+  // Theme
+  const savedTheme = localStorage.getItem('wf.theme') || 'dark';
+  applyTheme(savedTheme);
+  $('#btnTheme').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  // Reset
+  $('#btnReset').addEventListener('click', () => {
+    if (!confirm('Reset all configuration for this template?')) return;
+    State.config = {};
+    regenerate();
+    Router.render('design');
+    Toast.ok('Configuration reset');
+  });
+
+  // Sidebar toggle (mobile)
+  $('#btnMenu').addEventListener('click', () => {
+    $('#sidebar').classList.toggle('open');
+    $('#sbBackdrop').classList.toggle('on');
+  });
+  $('#sbBackdrop').addEventListener('click', () => {
+    $('#sidebar').classList.remove('open');
+    $('#sbBackdrop').classList.remove('on');
+  });
+
+  // Nav
+  $('#sbNav').addEventListener('click', (e) => {
+    const tplBtn = e.target.closest('[data-tpl]');
+    if (tplBtn) {
+      State.templateId = tplBtn.dataset.tpl;
+      State.config = {};
+      regenerate();
+      Router.render('design');
+      $('#sidebar').classList.remove('open');
+      $('#sbBackdrop').classList.remove('on');
+      return;
+    }
+    const viewBtn = e.target.closest('[data-view]');
+    if (viewBtn) {
+      Router.render(viewBtn.dataset.view);
+      $('#sidebar').classList.remove('open');
+      $('#sbBackdrop').classList.remove('on');
+      return;
+    }
+  });
+
+  // Hash change
+  window.addEventListener('hashchange', () => {
+    const hash = location.hash.replace(/^#\/?/, '') || 'design';
+    const name = Views[hash] ? hash : 'design';
+    Router.render(name);
+  });
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (Modal.backdrop.classList.contains('on')) Modal.close();
+      else if ($('#sidebar').classList.contains('open')) {
+        $('#sidebar').classList.remove('open');
+        $('#sbBackdrop').classList.remove('on');
+      }
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      const btn = $('#sendReq');
+      if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+    }
+  });
+
+  // Mobile nav
+  const mobnav = $('#mobNav');
+  mobnav.innerHTML = [
+    { id: 'design', icon: 'code', label: 'Design' },
+    { id: 'test', icon: 'play', label: 'Test' },
+    { id: 'deploy', icon: 'rocket', label: 'Deploy' },
+    { id: 'share', icon: 'share', label: 'Share' },
+    { id: 'docs', icon: 'info', label: 'Guide' }
+  ].map(n =>
+    '<button data-nav="' + n.id + '">' + ico(n.icon) + '<span>' + n.label + '</span></button>'
+  ).join('');
+  mobnav.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-nav]');
+    if (b) Router.render(b.dataset.nav);
+  });
+
+  // Update active mobnav
+  const observer = () => {
+    $$('#mobNav button').forEach(b => {
+      if (b.dataset.nav === State.view) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+  };
+  setInterval(observer, 300);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('wf.theme', theme);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0b' : '#fafafa');
+  const icon = $('#themeIcon');
+  if (icon) {
+    icon.outerHTML = '<svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">' +
+      (theme === 'dark'
+        ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+        : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>') +
+      "</svg>";
+  }
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
